@@ -80,8 +80,8 @@ st.markdown("""
 def get_realtime_info(query):
     try:
         resp = tavily_client.search(
-            query = query
-            max_results = 3
+            query = query,
+            max_results = 3,
             topic = "general"
         )
 
@@ -99,6 +99,32 @@ def get_realtime_info(query):
         st.error(f"Error fetching info: {e}")
         return None    
     
+    # Refine & Summarize the content via Gemini
+    prompt = f"""
+You are a professional researcher and content creator with expertise in multiple fields.
+Using the following real-time information, write an accurate, engaging, and human-like summary
+for the topic: '{query}'.
+
+Requirements:
+- Keep it factual, insightful, and concise (around 200 words).
+- Maintain a smooth, natural tone.
+- Highlight key takeaways or trends.
+- Avoid greetings or self-references.
+
+Source information:
+{source_info}
+
+Output only the refined, human-readable content.
+"""
+    try:
+        model = genai.GenerativeModel(MODEL_INFO)
+        response = model.generate_content(prompt)
+        return response.text.strip() if response and response.text else source_info
+
+    except Exception as e:
+        st.error(f"Error fetching info: {e}")
+        return None
+
 def main():
     st.markdown("<h1>🌐MCP Story Agent</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#D1D5DB;'>Search any topic from world news to research trends and get AI-powered insights & video scripts instantly </p>", unsafe_allow_html=True)
