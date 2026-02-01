@@ -12,7 +12,7 @@ tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 # Select the model
 MODEL_INFO = "gemini-2.0-flash"
-MODEL_SCRIPT = "gemini-2.5-flash"
+MODEL_SCRIPT = "gemini-2.0-flash"
 
 st.set_page_config(
     page_title="MCP Story Agent",
@@ -123,12 +123,71 @@ Output only the refined, human-readable content.
 
     except Exception as e:
         st.error(f"Error fetching info: {e}")
+        return source_info
+    
+def generate_video_transcription(info_text):
+    prompt = f"""
+You are a creative scriptwriter.
+Turn this real-time information into an engaging short video script (for YouTube Shorts or Instagram Reels).
+Use a conversational tone with a strong hook and a clear call to action at the end.
+Keep it around 100–120 words.
+
+{info_text}
+"""
+    try:
+        model = genai.GenerativeModel(MODEL_SCRIPT)
+        response = model.generate_content(prompt)
+        return response.text.strip() if response and response.text else "⚠️ Could not generate video script."
+    except Exception as e:
+        st.error(f"Error generating video script: {e}")
         return None
+    
 
 def main():
     st.markdown("<h1>🌐MCP Story Agent</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#D1D5DB;'>Search any topic from world news to research trends and get AI-powered insights & video scripts instantly </p>", unsafe_allow_html=True)
 
+    query = st.text_input("Enter the topic and question:")
+
+    if query:
+        with st.spinner("Gathering latest information..."):
+            info_result = get_realtime_info(query)
+
+        if info_result:
+            st.markdown("<div class='card'>", unsafe_allow_html=True)
+            st.subheader("AI-Generated Summary")
+            st.write(info_result)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            generate_script = st.radio(
+                "Generate a short video script?",
+                ("No", "Yes"),
+                index=0,
+                horizontal=True
+            )
+
+            if generate_script == "Yes":
+                with st.spinner('Crafting your video script...'):
+                    script = generate_video_transcription(info_result)
+
+                if script:
+                    st.markdown("<div class='card'>", unsafe_allow_html=True)
+                    st.subheader("Video Script")
+                    st.write(script)
+                    st.download_button(
+                        label="Download Script",
+                        data=script,
+                        file_name="video_script.txt",
+                        mime="text/plain"
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
+                else:
+                    st.warning("Could not generate transcription.")
+        else:
+            st.warning("No valid information found. Please try another query.")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.caption("Made it")
 
 
 if __name__ == "__main__":
