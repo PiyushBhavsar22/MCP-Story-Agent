@@ -1,2 +1,2 @@
-# MCP Story Agent
+# MCP REAL TIME CONTENT BUILDER
 
